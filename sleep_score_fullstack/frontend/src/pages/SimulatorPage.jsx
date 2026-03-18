@@ -43,6 +43,10 @@ export default function SimulatorPage() {
     hours_wake_to_first_eat: 1,
     hours_last_eat_to_bed: 3,
     eating_window_hours: 12,
+
+    // Recovery (optional)
+    rmssd_ms: null,
+    resting_hr_bpm: null,
   })
 
   const [result, setResult] = useState(null)
@@ -112,6 +116,15 @@ export default function SimulatorPage() {
             Weekend
           </label>
         </Field>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label="Recovery: RMSSD (ms)" hint="Optional. Higher RMSSD usually = better recovery.">
+            <input type="number" value={state.rmssd_ms ?? ''} placeholder="e.g., 45" onChange={(e) => setState(s => ({ ...s, rmssd_ms: e.target.value === '' ? null : Number(e.target.value) }))} style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.2)', color: 'white' }} />
+          </Field>
+          <Field label="Recovery: Resting HR (bpm)" hint="Optional. Lower resting HR usually = better recovery.">
+            <input type="number" value={state.resting_hr_bpm ?? ''} placeholder="e.g., 60" onChange={(e) => setState(s => ({ ...s, resting_hr_bpm: e.target.value === '' ? null : Number(e.target.value) }))} style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.2)', color: 'white' }} />
+          </Field>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Field label="Morning light (lux)" hint="Proxy for circadian-effective light after waking. Target ~250+ lux.">

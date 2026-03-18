@@ -1,74 +1,76 @@
-import pandas as pd
-import numpy as np
-from sklearn.linear_model import LinearRegression
+
+from __future__ import annotations
+import csv
 from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional, Tuple
+
+from app.services.linreg import LinearModel, fit_ols
+
 
 @dataclass
 class TradersModels:
-    duration_model: LinearRegression
-    ssq_model: LinearRegression
+    """Models trained on Song & Walker traders dataset (row-level)."""
+    duration_minutes: LinearModel   # predict Duration (minutes)
+    ssq: LinearModel                # predict SSQ (0-100)
 
-@dataclass
-class DidikogluModels:
-    latency_model: LinearRegression
 
 class ModelService:
-    """Loads datasets and trains simple baseline models at startup.
+    """Loads datasets and trains small baseline models at startup.
 
-    These are intentionally simple 'starter' models:
-    - Traders (Song & Walker 2023): predict sleep duration and sleep quality from caffeine, alcohol, interaction, weekend.
-    - Didikoglu et al. (PNAS 2023): predict sleep onset latency from caffeine, alcohol, workday.
+    Key design choice:
+    - No sklearn/numpy dependency (to avoid Python 3.13 build issues).
+    - These models are *starter* regressions: useful for demo + slider interactivity,
+      not meant to be clinical-grade prediction.
 
-    The Light and Chrononutrition papers are used as rule-based adjustments (in scoring.py).
+    Datasets expected in backend/data:
+      - financial_traders_data.csv
     """
 
-    def __init__(self, traders_csv_path: str, didikoglu_csv_path: str):
-        self.traders_csv_path = traders_csv_path
-        self.didikoglu_csv_path = didikoglu_csv_path
+    def __init__(self, data_dir: Path):
+        self.data_dir = data_dir
+        self.traders: Optional[TradersModels] = None
 
-        self.traders: TradersModels | None = None
-        self.didikoglu: DidikogluModels | None = None
-
-        self._train_all()
-
-    def _train_all(self):
-        self.traders = self._train_traders(self.traders_csv_path)
-        self.didikoglu = self._train_didikoglu(self.didikoglu_csv_path)
+    def load(self) -> None:
+        self.traders = self._train_traders_models(self.data_dir / "financial_traders_data.csv")
 
     @staticmethod
-    def _train_traders(path: str) -> TradersModels:
-        df = pd.read_csv(path)
-        # Basic cleaning
-        df = df.dropna(subset=["Duration", "SSQ", "Caffeine", "Alcohol", "Weekend"])
-        # Features
-        X = pd.DataFrame({
-            "caffeine": df["Caffeine"].astype(float),
-            "alcohol": df["Alcohol"].astype(float),
-            "caf_x_alc": df["Caffeine"].astype(float) * df["Alcohol"].astype(float),
-            "weekend": df["Weekend"].astype(int),
-        })
+    def _safe_float(x: str) -> Optional[float]:
+        try:
+            if x is None:
+                return None
+            x = str(x).strip()
+            if x == "" or x.lower() in {"na", "nan", "none"}:
+                return None
+            return float(x)
+        except Exception:
+            return None
 
-        y_duration = df["Duration"].astype(float)
-        y_ssq = df["SSQ"].astype(float)
+    def _train_traders_models(self, path: Path) -> TradersModels:
+        # Expected columns: Weekend, Caffeine, Alcohol, Duration, SSQ
+        X: List[List[float]] = []
+        y_dur: List[float] = []
+        y_ssq: List[float] = []
 
-        duration_model = LinearRegression().fit(X, y_duration)
-        ssq_model = LinearRegression().fit(X, y_ssq)
-        return TradersModels(duration_model=duration_model, ssq_model=ssq_model)
+        with path.open(newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                weekend = self._safe_float(row.get("Weekend")) or 0.0
+                caffeine = self._safe_float(row.get("Caffeine"))
+                alcohol = self._safe_float(row.get("Alcohol"))
+                dur = self._safe_float(row.get("Duration"))   # minutes in provided file
+                ssq = self._safe_float(row.get("SSQ"))
+                if caffeine is None or alcohol is None or dur is None or ssq is None:
+                    continue
 
-    @staticmethod
-    def _train_didikoglu(path: str) -> DidikogluModels:
-        df = pd.read_csv(path)
-        # workdayYesterday is 'Work'/'Free'
-        df = df.dropna(subset=["sleepOnsetLatencyYesterday", "caffeineYesterdayUnit", "alcoholYesterdayUnit", "workdayYesterday"])
-        df["workday"] = (df["workdayYesterday"].astype(str).str.lower() == "work").astype(int)
+                caf_x_alc = caffeine * alcohol
+                X.append([caffeine, alcohol, caf_x_alc, weekend])
+                y_dur.append(dur)
+                y_ssq.append(ssq)
 
-        X = pd.DataFrame({
-            "caffeine": df["caffeineYesterdayUnit"].astype(float),
-            "alcohol": df["alcoholYesterdayUnit"].astype(float),
-            "caf_x_alc": df["caffeineYesterdayUnit"].astype(float) * df["alcoholYesterdayUnit"].astype(float),
-            "workday": df["workday"].astype(int),
-        })
-        y_latency = df["sleepOnsetLatencyYesterday"].astype(float)  # hours
+        if len(X) < 10:
+            raise RuntimeError(f"Not enough rows to train traders models from {path}")
 
-        latency_model = LinearRegression().fit(X, y_latency)
-        return DidikogluModels(latency_model=latency_model)
+        dur_model = fit_ols(X, y_dur)
+        ssq_model = fit_ols(X, y_ssq)
+        return TradersModels(duration_minutes=dur_model, ssq=ssq_model)

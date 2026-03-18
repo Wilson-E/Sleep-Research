@@ -16,6 +16,10 @@ class PredictRequest(BaseModel):
     hours_wake_to_first_eat: float = Field(1, ge=0, le=12)
     hours_last_eat_to_bed: float = Field(3, ge=0, le=12)
     eating_window_hours: float = Field(12, ge=0, le=24)
+    # Recovery (HRV)
+    rmssd_ms: Optional[float] = Field(None, ge=0, le=300, description="RMSSD in milliseconds")
+    resting_hr_bpm: Optional[float] = Field(None, ge=0, le=200, description="Resting heart rate in bpm")
+
 
     # Optional personalization (if user has baseline)
     baseline_sleep_score: float = Field(75, ge=0, le=100)

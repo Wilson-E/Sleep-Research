@@ -1,5 +1,8 @@
+
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,19 +19,20 @@ models: ModelService | None = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global models
-    log.info("Loading datasets + training starter models...")
-    models = ModelService(settings.traders_csv, settings.didikoglu_csv)
+    log.info("Loading datasets + training starter models (no sklearn)...")
+    models = ModelService(Path(settings.data_dir))
+    models.load()
     log.info("Ready")
     yield
 
-app = FastAPI(title="Sleep Score API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Sleep Score API", version="0.2.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"] ,
-    allow_headers=["*"] ,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")
@@ -40,7 +44,6 @@ async def health():
     return {
         "status": "healthy" if models else "starting",
         "traders_model": models is not None and models.traders is not None,
-        "didikoglu_model": models is not None and models.didikoglu is not None,
     }
 
 @app.post("/api/predict", response_model=PredictResponse)
