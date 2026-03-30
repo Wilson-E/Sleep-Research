@@ -1,27 +1,19 @@
 
 import logging
 from contextlib import asynccontextmanager
-from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.models.schemas import PredictRequest, PredictResponse
-from app.services.model_service import ModelService
 from app.services.scoring import score_sleep
-from app.utils.config import settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("sleep-score-api")
 
-models: ModelService | None = None
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global models
-    log.info("Loading datasets + training starter models (no sklearn)...")
-    models = ModelService(Path(settings.data_dir))
-    models.load()
+    log.info("Starting pathway-based sleep simulation service...")
     log.info("Ready")
     yield
 
@@ -42,16 +34,13 @@ async def root():
 @app.get("/health")
 async def health():
     return {
-        "status": "healthy" if models else "starting",
-        "traders_model": models is not None and models.traders is not None,
+        "status": "healthy",
+        "engine": "pathway-simulation",
     }
 
 @app.post("/api/predict", response_model=PredictResponse)
 async def predict(req: PredictRequest):
-    if not models:
-        raise HTTPException(503, "Service not ready")
-
-    score, components, breakdown, model_info = score_sleep(req, models)
+    score, components, breakdown, model_info = score_sleep(req)
     return PredictResponse(
         sleep_score=score,
         components=components,
