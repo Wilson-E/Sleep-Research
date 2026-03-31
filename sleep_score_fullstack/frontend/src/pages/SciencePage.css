@@ -1,0 +1,241 @@
+.science-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7f9 0%, #ebf0f4 100%);
+  font-family: 'Inter', sans-serif;
+  color: #2c2f31;
+}
+
+.science-header {
+  background: linear-gradient(135deg, #1f45ec 0%, #8899ff 100%);
+  color: #fff;
+  padding: 60px 24px;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(31, 69, 236, 0.2);
+}
+
+.science-header-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.science-header-top-action {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+}
+
+.science-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.14);
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.science-back-link:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.science-back-link .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.science-header h1 {
+  margin: 0 0 16px;
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.science-header p {
+  margin: 0;
+  font-size: 18px;
+  opacity: 0.95;
+  line-height: 1.6;
+}
+
+.science-main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 60px 24px;
+}
+
+.science-section {
+  background: #fff;
+  border-radius: 20px;
+  padding: 40px;
+  margin-bottom: 32px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.science-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
+}
+
+.science-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.science-section-header span {
+  color: #1f45ec;
+  font-size: 32px;
+}
+
+.science-section-header h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.science-section-content {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #2c2f31;
+}
+
+.science-text p {
+  margin: 16px 0;
+  color: #595c5e;
+}
+
+.science-text strong {
+  color: #2c2f31;
+  font-weight: 700;
+}
+
+.science-text ul {
+  margin: 20px 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.science-list {
+  margin: 20px 0 !important;
+  padding-left: 0 !important;
+  list-style: none !important;
+}
+
+.science-list li {
+  margin: 12px 0;
+  padding-left: 32px;
+  position: relative;
+  color: #595c5e;
+  line-height: 1.7;
+}
+
+.science-list li:before {
+  content: '→';
+  position: absolute;
+  left: 8px;
+  color: #1f45ec;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.study-callout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  background: linear-gradient(135deg, rgba(31, 69, 236, 0.08) 0%, rgba(136, 153, 255, 0.08) 100%);
+  border-left: 4px solid #1f45ec;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 24px 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #2c2f31;
+}
+
+.callout-icon {
+  color: #1f45ec;
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  text-variation-settings: 'FILL' 1;
+}
+
+.study-callout strong {
+  color: #1f45ec;
+  font-weight: 700;
+}
+
+.science-footer {
+  text-align: center;
+  padding: 60px 24px 80px;
+  background: linear-gradient(135deg, rgba(31, 69, 236, 0.05) 0%, rgba(136, 153, 255, 0.05) 100%);
+}
+
+.science-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #1f45ec 0%, #8899ff 100%);
+  color: #fff;
+  padding: 16px 32px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 16px;
+  text-decoration: none;
+  box-shadow: 0 12px 30px rgba(31, 69, 236, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.science-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(31, 69, 236, 0.4);
+}
+
+.science-cta span {
+  font-size: 20px;
+}
+
+@media (max-width: 768px) {
+  .science-header {
+    padding: 40px 16px;
+  }
+
+  .science-header-top-action {
+    margin-bottom: 16px;
+  }
+
+  .science-header h1 {
+    font-size: 32px;
+  }
+
+  .science-header p {
+    font-size: 16px;
+  }
+
+  .science-main {
+    padding: 40px 16px;
+  }
+
+  .science-section {
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .science-section-header h2 {
+    font-size: 22px;
+  }
+
+  .science-section-content {
+    font-size: 15px;
+  }
+
+  .study-callout {
+    font-size: 14px;
+  }
+}

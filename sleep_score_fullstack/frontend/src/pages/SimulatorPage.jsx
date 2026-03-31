@@ -1,34 +1,9 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { predictSleep } from '../lib/api'
+import './SimulatorPage.css'
 
 const MG_PER_CUP = 95
-
-function Field({ label, children, hint }) {
-  return (
-    <div style={{ padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, background: 'rgba(255,255,255,0.03)' }}>
-      <div style={{ fontWeight: 700, marginBottom: 6 }}>{label}</div>
-      <div>{children}</div>
-      {hint ? <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>{hint}</div> : null}
-    </div>
-  )
-}
-
-function Slider({ value, onChange, min, max, step = 1 }) {
-  return (
-    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        style={{ width: '100%' }}
-      />
-      <div style={{ width: 70, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
-    </div>
-  )
-}
 
 function timeStringToHours(timeString) {
   const [hours, minutes] = timeString.split(':').map(Number)
@@ -48,28 +23,29 @@ function sensitivityLabel(multiplier) {
   return 'Average sensitivity'
 }
 
+const INITIAL_STATE = {
+  baseline_sleep_score: 75,
+  weekend: false,
+  bedtime_time: '',
+  caffeine_sensitivity: 1.0,
+
+  caffeine_doses: [{ time: '09:00', dose_mg: 95 }],
+  alcohol_drinks: 0,
+
+  morning_light_lux: 200,
+  evening_light_lux: 30,
+  night_light_minutes: 0,
+
+  hours_wake_to_first_eat: 1,
+  hours_last_eat_to_bed: 3,
+  eating_window_hours: 12,
+
+  rmssd_ms: null,
+  resting_hr_bpm: null,
+}
+
 export default function SimulatorPage() {
-  const [state, setState] = useState({
-    baseline_sleep_score: 75,
-    weekend: false,
-    bedtime_time: '',
-    caffeine_sensitivity: 1.0,
-
-    caffeine_doses: [{ time: '09:00', dose_mg: 95 }],
-    alcohol_drinks: 0,
-
-    morning_light_lux: 200,
-    evening_light_lux: 30,
-    night_light_minutes: 0,
-
-    hours_wake_to_first_eat: 1,
-    hours_last_eat_to_bed: 3,
-    eating_window_hours: 12,
-
-    // Recovery (optional)
-    rmssd_ms: null,
-    resting_hr_bpm: null,
-  })
+  const [state, setState] = useState(INITIAL_STATE)
 
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -108,242 +84,450 @@ export default function SimulatorPage() {
     }
   }
 
+  function onReset() {
+    setState(INITIAL_STATE)
+    setResult(null)
+    setError('')
+  }
+
+  const score = result ? Math.round(result.sleep_score) : Math.round(state.baseline_sleep_score)
+  const scoreArc = Math.max(0, Math.min(100, score)) * 3.6
+  const scoreStatus = score >= 85 ? 'Optimized' : score >= 70 ? 'Strong' : score >= 55 ? 'Moderate' : 'Needs Recovery'
+  const scoreMessage = result
+    ? 'Your scenario has been simulated. Small adjustments in evening caffeine and light can materially change your score.'
+    : 'Adjust your biological parameters to predict tonight\'s sleep quality and metabolic recovery.'
+
+  const totalAlcoholUnits = state.alcohol_drinks
+  const bedtimePreview = state.bedtime_time || 'Not set'
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16 }}>
-      <div style={{ display: 'grid', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>What-if Sleep Score</div>
-            <div style={{ opacity: 0.8, fontSize: 13 }}>Adjust inputs → run model → see score + contribution breakdown</div>
-          </div>
-          <button
-            onClick={onRun}
-            disabled={loading}
-            style={{
-              background: loading ? '#2a3554' : '#3b5bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: 12,
-              padding: '10px 14px',
-              fontWeight: 800,
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? 'Running…' : 'Run Prediction'}
+    <div className="sim-page">
+      <header className="top-nav">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          <span className="brand">Vitality Core</span>
+          <nav className="top-links">
+            <a className="top-link active" href="#">Dashboard</a>
+            <a className="top-link" href="#">History</a>
+            <a className="top-link" href="#">Insights</a>
+            <a className="top-link" href="#">Labs</a>
+          </nav>
+        </div>
+        <div className="top-actions">
+          <button className="icon-button" type="button" aria-label="Notifications">
+            <span className="material-symbols-outlined">notifications</span>
+          </button>
+          <button className="icon-button" type="button" aria-label="Settings">
+            <span className="material-symbols-outlined">settings</span>
           </button>
         </div>
+      </header>
 
-        <Field label="Baseline Sleep Score" hint="Your starting point before factor adjustments (0–100).">
-          <Slider min={0} max={100} step={1} value={state.baseline_sleep_score} onChange={(v) => setState(s => ({ ...s, baseline_sleep_score: v }))} />
-        </Field>
+      <div className="layout">
+        <aside className="side-nav">
+          <div className="side-header">
+            <h2>Vitality Core</h2>
+            <p>Bio-Optimization</p>
+          </div>
+          <div className="side-list">
+            <Link to="/science" className="side-item">
+              <span className="material-symbols-outlined">science</span>
+              Science
+            </Link>
+            <button className="side-item active" type="button">
+              <span className="material-symbols-outlined">wb_sunny</span>
+              Circadian
+            </button>
+            <button className="side-item" type="button">
+              <span className="material-symbols-outlined">restaurant</span>
+              Nutrition
+            </button>
+            <button className="side-item" type="button">
+              <span className="material-symbols-outlined">healing</span>
+              Recovery
+            </button>
+          </div>
+          <button className="side-upgrade" type="button">Upgrade to Pro</button>
+        </aside>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Field label="Caffeine doses" hint="Set each caffeine dose with an intake time so half-life decay is personalized.">
-            <div style={{ display: 'grid', gap: 8 }}>
-              {state.caffeine_doses.map((dose, idx) => (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'center' }}>
-                  <input
-                    type="time"
-                    value={dose.time}
-                    onChange={(e) => setState((s) => ({
-                      ...s,
-                      caffeine_doses: s.caffeine_doses.map((d, i) => (i === idx ? { ...d, time: e.target.value } : d)),
-                    }))}
-                    style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.2)', color: 'white' }}
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    max={1000}
-                    step={5}
-                    value={dose.dose_mg}
-                    onChange={(e) => setState((s) => ({
-                      ...s,
-                      caffeine_doses: s.caffeine_doses.map((d, i) => (i === idx ? { ...d, dose_mg: Number(e.target.value) } : d)),
-                    }))}
-                    style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.2)', color: 'white' }}
-                  />
-                  <button
-                    onClick={() => setState((s) => ({
-                      ...s,
-                      caffeine_doses: s.caffeine_doses.length > 1 ? s.caffeine_doses.filter((_, i) => i !== idx) : s.caffeine_doses,
-                    }))}
-                    disabled={state.caffeine_doses.length <= 1}
-                    style={{
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: 10,
-                      background: 'rgba(255,255,255,0.05)',
-                      color: 'white',
-                      padding: '8px 10px',
-                      cursor: state.caffeine_doses.length <= 1 ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <button
-                  onClick={() => setState((s) => ({
-                    ...s,
-                    caffeine_doses: [...s.caffeine_doses, { time: '13:00', dose_mg: 95 }],
-                  }))}
-                  style={{
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: 10,
-                    background: 'rgba(255,255,255,0.05)',
-                    color: 'white',
-                    padding: '8px 10px',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                  }}
-                >
-                  Add Dose
-                </button>
-                <div style={{ fontSize: 12, opacity: 0.85 }}>
-                  Total: {(payload.caffeine_cups || 0).toFixed(2)} cups ({Math.round((payload.caffeine_cups || 0) * MG_PER_CUP)} mg)
-                </div>
+        <main className="main">
+          <div className="main-wrap">
+            <header className="page-head">
+              <div>
+                <h1 className="page-title">Sleep Score Simulator</h1>
+                <p className="page-subtitle">
+                  Adjust your biological parameters to predict tonight's sleep quality and metabolic recovery.
+                </p>
               </div>
-            </div>
-          </Field>
-          <Field label="Alcohol (drinks/night)" hint="Used by the traders model + diary latency model.">
-            <Slider min={0} max={10} step={0.5} value={state.alcohol_drinks} onChange={(v) => setState(s => ({ ...s, alcohol_drinks: v }))} />
-          </Field>
-        </div>
-
-        <Field label="Caffeine Sensitivity" hint="Personalize caffeine impact. < 1.0 means caffeine-adjusted, > 1.0 means caffeine-sensitive.">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            {SENSITIVITY_PRESETS.map((preset) => {
-              const isActive = Math.abs(state.caffeine_sensitivity - preset.multiplier) < 0.001
-              return (
-                <button
-                  key={preset.key}
-                  onClick={() => setState((s) => ({ ...s, caffeine_sensitivity: preset.multiplier }))}
-                  style={{
-                    border: isActive ? '1px solid rgba(110,231,183,0.8)' : '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: 10,
-                    background: isActive ? 'rgba(110,231,183,0.15)' : 'rgba(255,255,255,0.05)',
-                    color: 'white',
-                    padding: '8px 10px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                >
-                  <div style={{ fontWeight: 800, fontSize: 12 }}>{preset.label}</div>
-                  <div style={{ fontSize: 11, opacity: 0.8 }}>{preset.multiplier.toFixed(2)}x</div>
+              <div className="page-actions">
+                <button className="btn btn-ghost" type="button" onClick={onReset}>
+                  <span className="material-symbols-outlined">refresh</span>
+                  Reset All
                 </button>
-              )
-            })}
-          </div>
-          <div style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
-            {sensitivityLabel(state.caffeine_sensitivity)} ({state.caffeine_sensitivity.toFixed(2)}x caffeine penalty)
-          </div>
-        </Field>
+                <button className="btn btn-primary" type="button" onClick={onRun} disabled={loading}>
+                  <span className="material-symbols-outlined">analytics</span>
+                  {loading ? 'Running…' : 'Run Model'}
+                </button>
+              </div>
+            </header>
 
-        <Field label="Bedtime (optional)" hint="Used directly by caffeine half-life residual calculations. Leave blank to derive bedtime from meal timing fields.">
-          <input
-            type="time"
-            value={state.bedtime_time}
-            onChange={(e) => setState((s) => ({ ...s, bedtime_time: e.target.value }))}
-            style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.2)', color: 'white' }}
-          />
-        </Field>
+            <div className="content-grid">
+              <div className="left-stack">
+                <section className="card">
+                  <h3 className="card-title">
+                    <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>bedtime</span>
+                    Baseline &amp; Core
+                  </h3>
+                  <div className="field">
+                    <div className="label-row">
+                      <label className="label">Baseline Sleep Score</label>
+                      <span className="label-value">{state.baseline_sleep_score}</span>
+                    </div>
+                    <input
+                      className="slider"
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={state.baseline_sleep_score}
+                      onChange={(e) => setState((s) => ({ ...s, baseline_sleep_score: Number(e.target.value) }))}
+                    />
+                  </div>
 
-        <Field label="Weekend?" hint="Matches the traders dataset weekend effect.">
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input
-              type="checkbox"
-              checked={state.weekend}
-              onChange={(e) => setState(s => ({ ...s, weekend: e.target.checked }))}
-            />
-            Weekend
-          </label>
-        </Field>
+                  <div className="field-grid-2" style={{ marginTop: 16 }}>
+                    <div className="field">
+                      <div className="label-row">
+                        <label className="label">Bedtime</label>
+                        <span className="label-value">{bedtimePreview}</span>
+                      </div>
+                      <input
+                        className="time-input"
+                        type="time"
+                        value={state.bedtime_time}
+                        onChange={(e) => setState((s) => ({ ...s, bedtime_time: e.target.value }))}
+                      />
+                    </div>
+                    <div className="field">
+                      <label className="label">Weekend Mode</label>
+                      <button
+                        type="button"
+                        className="switch"
+                        onClick={() => setState((s) => ({ ...s, weekend: !s.weekend }))}
+                        aria-pressed={state.weekend}
+                      >
+                        <span className={`switch-track ${state.weekend ? 'on' : ''}`}>
+                          <span className="switch-thumb" />
+                        </span>
+                        <span className="switch-label">{state.weekend ? 'Extended Routine' : 'Weekday Routine'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </section>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Field label="Recovery: RMSSD (ms)" hint="Optional. Higher RMSSD usually = better recovery.">
-            <input type="number" value={state.rmssd_ms ?? ''} placeholder="e.g., 45" onChange={(e) => setState(s => ({ ...s, rmssd_ms: e.target.value === '' ? null : Number(e.target.value) }))} style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.2)', color: 'white' }} />
-          </Field>
-          <Field label="Recovery: Resting HR (bpm)" hint="Optional. Lower resting HR usually = better recovery.">
-            <input type="number" value={state.resting_hr_bpm ?? ''} placeholder="e.g., 60" onChange={(e) => setState(s => ({ ...s, resting_hr_bpm: e.target.value === '' ? null : Number(e.target.value) }))} style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.2)', color: 'white' }} />
-          </Field>
-        </div>
+                <section className="card">
+                  <h3 className="card-title">
+                    <span className="material-symbols-outlined" style={{ color: 'var(--secondary)' }}>local_cafe</span>
+                    Substances
+                  </h3>
+                  <div className="field">
+                    <div className="label-row">
+                      <label className="label">Caffeine Doses</label>
+                      <button className="inline-btn" type="button" onClick={() => setState((s) => ({ ...s, caffeine_doses: [...s.caffeine_doses, { time: '13:00', dose_mg: 95 }] }))}>
+                        Add Dose
+                      </button>
+                    </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Field label="Morning light (lux)" hint="Proxy for circadian-effective light after waking. Target ~250+ lux.">
-            <Slider min={0} max={2000} step={10} value={state.morning_light_lux} onChange={(v) => setState(s => ({ ...s, morning_light_lux: v }))} />
-          </Field>
-          <Field label="Evening light (lux)" hint="Proxy for light in the last ~30 min before bed. Higher → worse latency.">
-            <Slider min={0} max={1000} step={10} value={state.evening_light_lux} onChange={(v) => setState(s => ({ ...s, evening_light_lux: v }))} />
-          </Field>
-        </div>
+                    <div className="dose-list">
+                      {state.caffeine_doses.map((dose, idx) => (
+                        <div className="dose-item" key={idx}>
+                          <input
+                            className="time-input"
+                            type="time"
+                            value={dose.time}
+                            onChange={(e) =>
+                              setState((s) => ({
+                                ...s,
+                                caffeine_doses: s.caffeine_doses.map((d, i) => (i === idx ? { ...d, time: e.target.value } : d)),
+                              }))
+                            }
+                          />
+                          <input
+                            className="number-input"
+                            type="number"
+                            min={0}
+                            max={1000}
+                            step={5}
+                            value={dose.dose_mg}
+                            onChange={(e) =>
+                              setState((s) => ({
+                                ...s,
+                                caffeine_doses: s.caffeine_doses.map((d, i) =>
+                                  i === idx ? { ...d, dose_mg: Number(e.target.value) } : d
+                                ),
+                              }))
+                            }
+                          />
+                          <button
+                            className="remove-btn"
+                            type="button"
+                            onClick={() =>
+                              setState((s) => ({
+                                ...s,
+                                caffeine_doses:
+                                  s.caffeine_doses.length > 1
+                                    ? s.caffeine_doses.filter((_, i) => i !== idx)
+                                    : s.caffeine_doses,
+                              }))
+                            }
+                            disabled={state.caffeine_doses.length <= 1}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
 
-        <Field label="Night light (minutes)" hint="Minutes of light during sleep (e.g., phone checks, hallway light).">
-          <Slider min={0} max={180} step={5} value={state.night_light_minutes} onChange={(v) => setState(s => ({ ...s, night_light_minutes: v }))} />
-        </Field>
+                    <div className="inline-row">
+                      <span className="inline-meta">
+                        Total: {(payload.caffeine_cups || 0).toFixed(2)} cups ({Math.round((payload.caffeine_cups || 0) * MG_PER_CUP)} mg)
+                      </span>
+                    </div>
+                  </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-          <Field label="Wake → 1st eating (h)">
-            <Slider min={0} max={8} step={0.5} value={state.hours_wake_to_first_eat} onChange={(v) => setState(s => ({ ...s, hours_wake_to_first_eat: v }))} />
-          </Field>
-          <Field label="Last eating → bed (h)">
-            <Slider min={0} max={8} step={0.5} value={state.hours_last_eat_to_bed} onChange={(v) => setState(s => ({ ...s, hours_last_eat_to_bed: v }))} />
-          </Field>
-          <Field label="Eating window (h)">
-            <Slider min={4} max={18} step={0.5} value={state.eating_window_hours} onChange={(v) => setState(s => ({ ...s, eating_window_hours: v }))} />
-          </Field>
-        </div>
+                  <div className="field-grid-2" style={{ marginTop: 16 }}>
+                    <div className="field">
+                      <div className="label-row">
+                        <label className="label">Alcohol</label>
+                        <span className="label-value">{totalAlcoholUnits.toFixed(1)} standard drinks</span>
+                      </div>
+                      <input
+                        className="slider"
+                        type="range"
+                        min={0}
+                        max={10}
+                        step={0.5}
+                        value={state.alcohol_drinks}
+                        onChange={(e) => setState((s) => ({ ...s, alcohol_drinks: Number(e.target.value) }))}
+                      />
+                    </div>
 
-        {error ? (
-          <div style={{ padding: 12, borderRadius: 12, background: 'rgba(255,0,0,0.12)', border: '1px solid rgba(255,0,0,0.25)' }}>
-            <div style={{ fontWeight: 800, marginBottom: 6 }}>Error</div>
-            <div style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{error}</div>
-          </div>
-        ) : null}
-      </div>
-
-      <div style={{ position: 'sticky', top: 16, alignSelf: 'start' }}>
-        <div style={{ padding: 14, borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
-          <div style={{ fontSize: 14, opacity: 0.8 }}>Estimated Sleep Score</div>
-          <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1, marginTop: 6 }}>
-            {result ? Math.round(result.sleep_score) : '—'}
-          </div>
-          <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>
-            0 = terrible, 100 = excellent (starter calibration)
-          </div>
-
-          <div style={{ marginTop: 14 }}>
-            <div style={{ fontWeight: 800, marginBottom: 8 }}>Breakdown</div>
-            {result ? (
-              <div style={{ display: 'grid', gap: 10 }}>
-                {result.breakdown.map((b, idx) => (
-                  <div key={idx} style={{ padding: 10, borderRadius: 12, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                      <div style={{ fontWeight: 800, fontSize: 13 }}>{b.label}</div>
-                      <div style={{ fontWeight: 900, color: b.delta >= 0 ? '#6ee7b7' : '#fca5a5' }}>
-                        {b.delta >= 0 ? '+' : ''}{b.delta.toFixed(1)}
+                    <div className="field">
+                      <label className="label">Caffeine Sensitivity</label>
+                      <select
+                        className="select-input"
+                        value={state.caffeine_sensitivity}
+                        onChange={(e) => setState((s) => ({ ...s, caffeine_sensitivity: Number(e.target.value) }))}
+                      >
+                        {SENSITIVITY_PRESETS.map((preset) => (
+                          <option value={preset.multiplier} key={preset.key}>
+                            {preset.label} ({preset.multiplier.toFixed(2)}x)
+                          </option>
+                        ))}
+                      </select>
+                      <div className="helper">
+                        {sensitivityLabel(state.caffeine_sensitivity)} ({state.caffeine_sensitivity.toFixed(2)}x caffeine penalty)
                       </div>
                     </div>
-                    <div style={{ fontSize: 12, opacity: 0.8, marginTop: 4 }}>{b.details}</div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ fontSize: 13, opacity: 0.7 }}>Run a prediction to see contributions.</div>
-            )}
-          </div>
+                </section>
 
-          {result ? (
-            <div style={{ marginTop: 14, fontSize: 12, opacity: 0.85 }}>
-              <div style={{ fontWeight: 800, marginBottom: 6 }}>Model notes</div>
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
-                <li>Backend uses a pathway-based simulation engine with study-based coefficients.</li>
-                <li>Components are Duration, Quality, Timing, and Alertness.</li>
-              </ul>
+                <section className="card">
+                  <h3 className="card-title">
+                    <span className="material-symbols-outlined" style={{ color: 'var(--tertiary)' }}>monitor_heart</span>
+                    Recovery &amp; Rhythms
+                  </h3>
+                  <div className="field-grid-2">
+                    <div className="field">
+                      <label className="label">Baseline HRV (RMSSD)</label>
+                      <input
+                        className="number-input"
+                        type="number"
+                        value={state.rmssd_ms ?? ''}
+                        placeholder="e.g., 72"
+                        onChange={(e) =>
+                          setState((s) => ({ ...s, rmssd_ms: e.target.value === '' ? null : Number(e.target.value) }))
+                        }
+                      />
+                    </div>
+                    <div className="field">
+                      <label className="label">Resting HR</label>
+                      <input
+                        className="number-input"
+                        type="number"
+                        value={state.resting_hr_bpm ?? ''}
+                        placeholder="e.g., 54"
+                        onChange={(e) =>
+                          setState((s) => ({ ...s, resting_hr_bpm: e.target.value === '' ? null : Number(e.target.value) }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="field-grid-2" style={{ marginTop: 16 }}>
+                    <div className="field">
+                      <div className="label-row">
+                        <label className="label">Morning Light</label>
+                        <span className="label-value">{state.morning_light_lux} lux</span>
+                      </div>
+                      <input
+                        className="slider"
+                        type="range"
+                        min={0}
+                        max={2000}
+                        step={10}
+                        value={state.morning_light_lux}
+                        onChange={(e) => setState((s) => ({ ...s, morning_light_lux: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="field">
+                      <div className="label-row">
+                        <label className="label">Evening Light Exposure</label>
+                        <span className="label-value">{state.evening_light_lux} lux</span>
+                      </div>
+                      <input
+                        className="slider"
+                        type="range"
+                        min={0}
+                        max={1000}
+                        step={10}
+                        value={state.evening_light_lux}
+                        onChange={(e) => setState((s) => ({ ...s, evening_light_lux: Number(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="field" style={{ marginTop: 16 }}>
+                    <div className="label-row">
+                      <label className="label">Night Light Minutes</label>
+                      <span className="label-value">{state.night_light_minutes} min</span>
+                    </div>
+                    <input
+                      className="slider"
+                      type="range"
+                      min={0}
+                      max={180}
+                      step={5}
+                      value={state.night_light_minutes}
+                      onChange={(e) => setState((s) => ({ ...s, night_light_minutes: Number(e.target.value) }))}
+                    />
+                  </div>
+                </section>
+
+                <section className="card">
+                  <h3 className="card-title">
+                    <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>restaurant</span>
+                    Metabolic Timing
+                  </h3>
+                  <div className="field-grid-3">
+                    <div className="field">
+                      <div className="label-row">
+                        <label className="label">Wake → First Eat</label>
+                        <span className="label-value">{state.hours_wake_to_first_eat.toFixed(1)} h</span>
+                      </div>
+                      <input
+                        className="slider"
+                        type="range"
+                        min={0}
+                        max={8}
+                        step={0.5}
+                        value={state.hours_wake_to_first_eat}
+                        onChange={(e) => setState((s) => ({ ...s, hours_wake_to_first_eat: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="field">
+                      <div className="label-row">
+                        <label className="label">Last Eat → Bed</label>
+                        <span className="label-value">{state.hours_last_eat_to_bed.toFixed(1)} h</span>
+                      </div>
+                      <input
+                        className="slider"
+                        type="range"
+                        min={0}
+                        max={8}
+                        step={0.5}
+                        value={state.hours_last_eat_to_bed}
+                        onChange={(e) => setState((s) => ({ ...s, hours_last_eat_to_bed: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="field">
+                      <div className="label-row">
+                        <label className="label">Eating Window</label>
+                        <span className="label-value">{state.eating_window_hours.toFixed(1)} h</span>
+                      </div>
+                      <input
+                        className="slider"
+                        type="range"
+                        min={4}
+                        max={18}
+                        step={0.5}
+                        value={state.eating_window_hours}
+                        onChange={(e) => setState((s) => ({ ...s, eating_window_hours: Number(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {error ? <div className="error-box">{error}</div> : null}
+              </div>
+
+              <div className="right-stack">
+                <section className="score-card">
+                  <p className="score-kicker">Predicted Sleep Score</p>
+                  <div className="score-ring" style={{ '--arc': `${scoreArc}deg` }}>
+                    <div className="score-ring-inner">
+                      <p className="score-value">{score}</p>
+                      <div className="score-status">{scoreStatus}</div>
+                    </div>
+                  </div>
+                  <p className="score-message">{scoreMessage}</p>
+                  <div className="badges">
+                    <span className="badge badge-success">Metabolic Tracking</span>
+                    <span className="badge badge-primary">Circadian Aligned</span>
+                  </div>
+                </section>
+
+                <section className="breakdown">
+                  <h3>Impact Breakdown</h3>
+                  {result ? (
+                    result.breakdown.map((b, idx) => (
+                      <div className="breakdown-item" key={idx}>
+                        <div>
+                          <p className="breakdown-label">{b.label}</p>
+                          <p className="breakdown-detail">{b.details}</p>
+                        </div>
+                        <div className={`breakdown-delta ${b.delta >= 0 ? 'delta-positive' : 'delta-negative'}`}>
+                          {b.delta >= 0 ? '+' : ''}
+                          {b.delta.toFixed(1)}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="helper">Run the model to see contribution breakdown from the backend simulation.</p>
+                  )}
+                </section>
+              </div>
             </div>
-          ) : null}
-        </div>
+          </div>
+        </main>
       </div>
+
+      <nav className="mobile-bottom-nav">
+        <a className="active" href="#">
+          <span className="material-symbols-outlined">dashboard</span>
+          Dash
+        </a>
+        <a href="#">
+          <span className="material-symbols-outlined">history</span>
+          History
+        </a>
+        <a href="#">
+          <span className="material-symbols-outlined">analytics</span>
+          Sim
+        </a>
+        <a href="#">
+          <span className="material-symbols-outlined">person</span>
+          Profile
+        </a>
+      </nav>
     </div>
   )
 }
