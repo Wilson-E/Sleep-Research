@@ -118,6 +118,7 @@ class MealTimingPathway:
     first_meal_hours: float = 7.5
     last_meal_hours: float = 19.0
     bedtime_hours: float = 23.0
+    sensitivity_multiplier: float = 1.0
 
     _or_wake_to_first_timing: float = 1.19
     _or_wake_to_first_duration: float = 1.21
@@ -154,16 +155,16 @@ class MealTimingPathway:
 
         timing_pen = self._or_to_penalty(
             self._or_wake_to_first_timing, h_w2f, self._max_timing_pen
-        )
+        ) * self.sensitivity_multiplier
 
         dur_pen_w2f = self._or_to_penalty(
             self._or_wake_to_first_duration, h_w2f, self._max_duration_pen * 0.6
-        )
+        ) * self.sensitivity_multiplier
         dur_pen_l2b = self._or_to_penalty(
             self._or_last_to_bed_duration,
             max(0.0, 3.0 - h_l2b),
             self._max_duration_pen * 0.4,
-        )
+        ) * self.sensitivity_multiplier
         duration_pen = dur_pen_w2f + dur_pen_l2b
 
         window_bonus = _clamp((1.0 - self._or_window_timing_protective) * ew * 2.5, 0.0, 8.0)
@@ -221,7 +222,72 @@ class LightPathway:
 
 
 # ---------------------------------------------------------------------------
-# 5. SleepScoreCalculator
+# 5. EveningDietModifier  (Soares et al. 2025 cross-pathway interaction)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class EveningDietModifier:
+    """
+    Models the Soares et al. (2025) finding that evening diet composition
+    mediates the relationship between meal timing and sleep quality.
+
+    This is NOT an independent pathway — it modifies the outputs of
+    CaffeinePathway, AlcoholPathway, and MealTimingPathway.
+    """
+
+    evening_caffeine_mg: float = 0.0
+    evening_alcohol_drinks: float = 0.0
+    hours_last_eat_to_bed: float = 3.0
+    screen_time_minutes: float = 0.0
+    sensitivity_multiplier: float = 1.0  # personalized via Bayesian updater
+
+    # Soares et al. (2025) standardized coefficients
+    _de_disturbing_diet: float = 0.189
+    _de_evening_latency_short: float = -0.126
+    _ie_mediation: float = 0.013
+    _de_screen_time: float = 0.001
+
+    def compute(self) -> Dict:
+        has_evening_caffeine = self.evening_caffeine_mg > 10.0
+        has_evening_alcohol = self.evening_alcohol_drinks > 0.0
+
+        diet_disturbing_score = 0.0
+        if has_evening_caffeine:
+            diet_disturbing_score += 0.5
+        if has_evening_alcohol:
+            diet_disturbing_score += 0.5
+
+        # Direct effect of disturbing diet on quality (max ~8 pts penalty)
+        diet_quality_penalty = diet_disturbing_score * self._de_disturbing_diet * 40.0
+        diet_quality_penalty = _clamp(diet_quality_penalty * self.sensitivity_multiplier, 0.0, 8.0)
+
+        # Evening latency interaction (mediation effect)
+        short_latency = self.hours_last_eat_to_bed <= 2.0
+        if short_latency and diet_disturbing_score > 0:
+            mediation_penalty = diet_disturbing_score * self._ie_mediation * 40.0
+            mediation_penalty = _clamp(mediation_penalty * self.sensitivity_multiplier, 0.0, 3.0)
+        elif short_latency and diet_disturbing_score == 0:
+            # Short latency with clean diet is PROTECTIVE
+            mediation_penalty = self._de_evening_latency_short * 15.0  # negative = bonus
+            mediation_penalty = _clamp(mediation_penalty, -4.0, 0.0)
+        else:
+            mediation_penalty = 0.0
+
+        # Screen time penalty (max 4 pts)
+        screen_penalty = _clamp(self.screen_time_minutes * self._de_screen_time * 0.5, 0.0, 4.0)
+
+        return {
+            "diet_disturbing_score": round(diet_disturbing_score, 2),
+            "diet_quality_penalty": round(diet_quality_penalty, 2),
+            "mediation_penalty": round(mediation_penalty, 2),
+            "screen_penalty": round(screen_penalty, 2),
+            "has_evening_caffeine": has_evening_caffeine,
+            "has_evening_alcohol": has_evening_alcohol,
+        }
+
+
+# ---------------------------------------------------------------------------
+# 6. SleepScoreCalculator
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -232,6 +298,7 @@ class SleepScoreCalculator:
     alcohol_pathway: AlcoholPathway = field(default_factory=AlcoholPathway)
     meal_timing_pathway: MealTimingPathway = field(default_factory=MealTimingPathway)
     light_pathway: LightPathway = field(default_factory=LightPathway)
+    evening_diet_modifier: EveningDietModifier = field(default_factory=EveningDietModifier)
 
     _max_duration: float = 30.0
     _max_quality: float = 30.0
@@ -243,19 +310,26 @@ class SleepScoreCalculator:
         alc = self.alcohol_pathway.compute()
         meal = self.meal_timing_pathway.compute()
         light = self.light_pathway.compute()
+        evening = self.evening_diet_modifier.compute()
 
+        # --- Duration component (max 30) ---
         caf_dur_pen = _clamp(caf["duration_penalty_min"] / 120.0 * 20.0, 0.0, 20.0)
         meal_dur_pen = _clamp(meal["duration_penalty"] / 15.0 * 10.0, 0.0, 10.0)
         duration_score = _clamp(
             self._max_duration - caf_dur_pen - meal_dur_pen, 0.0, self._max_duration
         )
 
+        # --- Quality component (max 30) ---
         alc_qual_pen = _clamp(alc["net_quality_penalty"] / 40.0 * 20.0, 0.0, 20.0)
         caf_qual_pen = _clamp(caf["quality_penalty"] / 20.0 * 10.0, 0.0, 10.0)
         quality_score = _clamp(
             self._max_quality - alc_qual_pen - caf_qual_pen, 0.0, self._max_quality
         )
+        # Soares evening diet: apply direct diet quality penalty (max 5 pts)
+        evening_qual_pen = _clamp(evening["diet_quality_penalty"] / 8.0 * 5.0, 0.0, 5.0)
+        quality_score = _clamp(quality_score - evening_qual_pen, 0.0, self._max_quality)
 
+        # --- Timing component (max 20) ---
         meal_tim_pen = _clamp(meal["timing_penalty"] / 15.0 * 12.0, 0.0, 12.0)
         meal_window_bonus = _clamp(meal["window_bonus"] / 8.0 * 4.0, 0.0, 4.0)
         light_lat_pen = _clamp(light["latency_penalty_points"] / 25.0 * 8.0, 0.0, 8.0)
@@ -264,12 +338,19 @@ class SleepScoreCalculator:
             0.0,
             self._max_timing,
         )
+        # Soares mediation: negative = bonus (clean short latency), positive = penalty
+        evening_timing_adj = _clamp(evening["mediation_penalty"] / 3.0 * 4.0, -4.0, 4.0)
+        timing_score = _clamp(timing_score - evening_timing_adj, 0.0, self._max_timing)
 
+        # --- Alertness component (max 20) ---
         alertness_bonus = light["alertness_bonus"]
         night_light_pen = _clamp(light["night_light_penalty"] / 12.0 * 5.0, 0.0, 5.0)
         alertness_score = _clamp(
             alertness_bonus - night_light_pen, 0.0, self._max_alertness
         )
+        # Soares screen time penalty (max 3 pts)
+        evening_screen_pen = _clamp(evening["screen_penalty"] / 4.0 * 3.0, 0.0, 3.0)
+        alertness_score = _clamp(alertness_score - evening_screen_pen, 0.0, self._max_alertness)
 
         total_score = duration_score + quality_score + timing_score + alertness_score
         total_score = _clamp(total_score, 0.0, 100.0)
@@ -294,6 +375,8 @@ class SleepScoreCalculator:
                     "alcohol_raw_penalty": alc["raw_quality_penalty"],
                     "caffeine_alcohol_interaction_offset": alc["interaction_offset"],
                     "caffeine_quality_penalty": caf["quality_penalty"],
+                    "evening_diet_quality_penalty": round(evening_qual_pen, 2),
+                    "evening_diet_disturbing_score": evening["diet_disturbing_score"],
                 },
                 "timing": {
                     "score": round(timing_score, 1),
@@ -305,6 +388,7 @@ class SleepScoreCalculator:
                     "hours_wake_to_first_meal": meal["hours_wake_to_first"],
                     "hours_last_meal_to_bed": meal["hours_last_to_bed"],
                     "eating_window_hours": meal["eating_window"],
+                    "evening_mediation_adjustment": round(evening_timing_adj, 2),
                 },
                 "alertness": {
                     "score": round(alertness_score, 1),
@@ -313,7 +397,16 @@ class SleepScoreCalculator:
                     "alertness_bonus_pts": round(alertness_bonus, 2),
                     "night_light_penalty_pts": round(night_light_pen, 2),
                     "night_light_minutes": self.light_pathway.night_light_minutes,
+                    "screen_time_penalty_pts": round(evening_screen_pen, 2),
                 },
+            },
+            "evening_diet_modifier": {
+                "diet_disturbing_score": evening["diet_disturbing_score"],
+                "diet_quality_penalty": evening["diet_quality_penalty"],
+                "mediation_penalty": evening["mediation_penalty"],
+                "screen_penalty": evening["screen_penalty"],
+                "has_evening_caffeine": evening["has_evening_caffeine"],
+                "has_evening_alcohol": evening["has_evening_alcohol"],
             },
         }
 
