@@ -49,7 +49,8 @@ class CaffeinePathway:
     cup_equiv_mg: float = 95.0
     sensitivity_multiplier: float = 1.0
 
-    _minutes_lost_per_cup: float = 10.4
+    # Calibrated from NHANES (n=5,116); literature value was 10.4 (Song & Walker 2023)
+    _minutes_lost_per_cup: float = 9.07
     _quality_pen_per_cup: float = 2.0
 
     def _residual_mg(self) -> float:

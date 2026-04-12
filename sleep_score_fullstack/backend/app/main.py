@@ -20,6 +20,8 @@ from app.models.schemas import (
 from app.services.bayesian_updater import BayesianPersonalizer
 from app.services.scoring import score_sleep
 from app.services.sleep_log import SleepLogEntry, SleepLogStore
+from app.services.trained_model_service import TrainedModelService
+from app.routers import model_router
 from app.utils.config import settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -27,21 +29,32 @@ log = logging.getLogger("sleep-score-api")
 
 sleep_log_store: Optional[SleepLogStore] = None
 bayesian_personalizer: Optional[BayesianPersonalizer] = None
+trained_models: Optional[TrainedModelService] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global sleep_log_store, bayesian_personalizer
+    global sleep_log_store, bayesian_personalizer, trained_models
     log_path = Path(settings.log_dir)
     sleep_log_store = SleepLogStore(log_path)
     bayesian_personalizer = BayesianPersonalizer(log_path)
     log.info("Starting pathway-based sleep simulation service...")
     log.info("Sleep log store initialized at %s", log_path)
+
+    # Train model tiers and run cross-validation
+    trained_models = TrainedModelService()
+    try:
+        trained_models.load(Path(settings.data_dir))
+        model_router.set_service(trained_models)
+        log.info("Trained model service ready with %d rows", trained_models.models.dataset_size)
+    except Exception as e:
+        log.warning("Trained model service failed to load (non-fatal): %s", e)
+
     log.info("Ready")
     yield
 
 
-app = FastAPI(title="Sleep Score API", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="Sleep Score API", version="0.4.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,6 +63,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(model_router.router)
 
 
 @app.get("/")

@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { getModelComparison } from '../lib/api'
 import './SciencePage.css'
 
 function ScienceSection({ icon, title, children }) {
@@ -20,6 +22,145 @@ function StudyCallout({ author, finding }) {
       <div>
         <strong>{author}:</strong> {finding}
       </div>
+    </div>
+  )
+}
+
+function ModelValidationSection() {
+  const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    getModelComparison()
+      .then(setData)
+      .catch(() => setError('Could not load model validation data.'))
+  }, [])
+
+  if (error) return <p className="science-text">{error}</p>
+  if (!data) return <p className="science-text">Loading model validation data...</p>
+
+  const { models, dataset, calibrated_coefficients, sem_results, ols_results, rf_results } = data
+
+  return (
+    <div className="science-text">
+      <p>
+        To validate our pathway-based approach, we trained and cross-validated four model tiers
+        on a harmonized dataset of <strong>{dataset.total_rows?.toLocaleString()}</strong> observations
+        from {Object.keys(dataset.sources || {}).length} sources
+        ({Object.entries(dataset.sources || {}).map(([k, v]) => `${k}: ${v.toLocaleString()}`).join(', ')}).
+        All models use 5-fold GroupKFold cross-validation grouped by participant to prevent data leakage.
+      </p>
+
+      <h3>Cross-Validation Comparison</h3>
+      <div className="validation-table-wrapper">
+        <table className="validation-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>CV R-squared</th>
+              <th>CV RMSE</th>
+              <th>CV MAE</th>
+              <th>Pearson r</th>
+            </tr>
+          </thead>
+          <tbody>
+            {models?.map((m, i) => (
+              <tr key={i}>
+                <td>{m.Model}</td>
+                <td>{m['CV R-squared']}</td>
+                <td>{m['CV RMSE']}</td>
+                <td>{m['CV MAE']}</td>
+                <td>{m['Pearson r']}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {calibrated_coefficients && (
+        <>
+          <h3>Data-Calibrated Pathway Coefficients</h3>
+          <p>
+            We independently estimated the pathway engine's key parameters from data and compared
+            them to published literature values:
+          </p>
+          <div className="validation-table-wrapper">
+            <table className="validation-table">
+              <thead>
+                <tr><th>Coefficient</th><th>Learned</th><th>Literature</th><th>Source</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Minutes lost per cup (caffeine)</td>
+                  <td>{calibrated_coefficients.minutes_lost_per_cup?.learned}</td>
+                  <td>{calibrated_coefficients.minutes_lost_per_cup?.literature}</td>
+                  <td>NHANES (n=5,116)</td>
+                </tr>
+                <tr>
+                  <td>Quality penalty per drink (alcohol)</td>
+                  <td>{calibrated_coefficients.quality_pen_per_drink?.learned}</td>
+                  <td>{calibrated_coefficients.quality_pen_per_drink?.literature}</td>
+                  <td>Song & Walker (2023)</td>
+                </tr>
+                <tr>
+                  <td>Interaction coefficient</td>
+                  <td>{calibrated_coefficients.interaction_coeff?.learned}</td>
+                  <td>{calibrated_coefficients.interaction_coeff?.literature}</td>
+                  <td>Song & Walker (2023)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {sem_results?.converged && (
+        <>
+          <h3>Structural Equation Model (Soares-Inspired)</h3>
+          <p>
+            Inspired by Soares et al. (2025), we fit a path model testing whether caffeine and
+            alcohol affect sleep quality both directly and indirectly through sleep duration (mediation).
+          </p>
+          <h4>Direct Effects</h4>
+          <ul className="science-list">
+            {Object.entries(sem_results.direct_effects || {}).map(([path, val]) => (
+              <li key={path}><strong>{path}:</strong> {val}</li>
+            ))}
+          </ul>
+          <h4>Indirect (Mediation) Effects</h4>
+          <ul className="science-list">
+            {Object.entries(sem_results.indirect_effects || {}).map(([path, val]) => (
+              <li key={path}><strong>{path}:</strong> {val}</li>
+            ))}
+          </ul>
+          {sem_results.fit_indices && Object.keys(sem_results.fit_indices).length > 0 && (
+            <>
+              <h4>Model Fit Indices</h4>
+              <ul className="science-list">
+                {['CFI', 'RMSEA', 'GFI', 'TLI'].map(idx =>
+                  sem_results.fit_indices[idx] != null && (
+                    <li key={idx}><strong>{idx}:</strong> {sem_results.fit_indices[idx]}</li>
+                  )
+                )}
+              </ul>
+            </>
+          )}
+        </>
+      )}
+
+      {rf_results?.oob_r_squared != null && (
+        <>
+          <h3>Feature Importance (Random Forest)</h3>
+          <p>OOB R-squared: {rf_results.oob_r_squared}</p>
+          <ul className="science-list">
+            {Object.entries(rf_results.feature_importances || {})
+              .sort(([,a], [,b]) => b - a)
+              .map(([feat, imp]) => (
+                <li key={feat}><strong>{feat}:</strong> {(imp * 100).toFixed(1)}%</li>
+              ))}
+          </ul>
+        </>
+      )}
     </div>
   )
 }
@@ -325,6 +466,9 @@ export default function SciencePage() {
               strategy is to experiment with these variables and observe your own patterns.
             </p>
           </div>
+        </ScienceSection>
+        <ScienceSection icon="verified" title="Model Validation & Accuracy">
+          <ModelValidationSection />
         </ScienceSection>
       </main>
 
