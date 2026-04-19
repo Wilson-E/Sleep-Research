@@ -156,9 +156,14 @@ def _nhanes_quality_score(sleepiness: float, trouble: float, duration: float) ->
 
     Higher score = better sleep quality (consistent with traders SSQ).
     """
+    # NHANES skip patterns leave many items missing. We impute a mildly
+    # positive 60/100 default when a component is NaN so participants are not
+    # penalized for unanswered questions. This biases scores toward the mean
+    # but keeps the sample size usable for cross-validation.
+
     # Sleepiness component (0-4 scale inverted to 0-100)
     if np.isnan(sleepiness):
-        sleepiness_score = 60.0  # neutral default
+        sleepiness_score = 60.0
     else:
         sleepiness_score = max(0.0, 100.0 - sleepiness * 25.0)
 

@@ -12,9 +12,7 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Dict, List, Optional
 
-
-def _clamp(x: float, lo: float, hi: float) -> float:
-    return max(lo, min(hi, x))
+from app.utils.math_utils import clamp
 
 
 # ---------------------------------------------------------------------------
@@ -96,22 +94,25 @@ def compute_observed_score(
     # Quality component (0-30): map 1-5 to 0-30
     qual_score = (quality_subjective - 1) / 4.0 * 30.0
 
-    # Timing/Latency component (0-20)
+    # Timing/Latency component (0-20). If the user did not report latency,
+    # fall back to 12/20, a mild positive default so missing data is not
+    # punished as strongly as a reported 30+ min latency.
     if onset_latency_minutes is not None:
         if onset_latency_minutes <= 15:
             lat_score = 20.0
         else:
             lat_score = max(0.0, 20.0 - (onset_latency_minutes - 15) * 0.5)
     else:
-        lat_score = 12.0  # neutral default
+        lat_score = 12.0
 
-    # Alertness component (0-20): map 1-5 to 0-20
+    # Alertness component (0-20): map 1-5 to 0-20. If missing, use the
+    # midpoint (10/20) so the aggregate score stays centered.
     if morning_alertness is not None:
         alert_score = (morning_alertness - 1) / 4.0 * 20.0
     else:
-        alert_score = 10.0  # neutral default
+        alert_score = 10.0
 
-    return round(_clamp(dur_score + qual_score + lat_score + alert_score, 0.0, 100.0), 1)
+    return round(clamp(dur_score + qual_score + lat_score + alert_score, 0.0, 100.0), 1)
 
 
 # ---------------------------------------------------------------------------

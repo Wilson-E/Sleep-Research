@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage.jsx'
 import SimulatorPage from './pages/SimulatorPage.jsx'
 import SciencePage from './pages/SciencePage.jsx'
+import HistoryPage from './pages/HistoryPage.jsx'
 
 export default function App() {
   return (
@@ -10,6 +11,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/simulator" element={<SimulatorPage />} />
         <Route path="/science" element={<SciencePage />} />
+        <Route path="/history" element={<HistoryPage />} />
       </Routes>
     </BrowserRouter>
   )

@@ -1,0 +1,364 @@
+.history-page {
+  min-height: 100vh;
+  background: #f5f6fa;
+  color: #0b2545;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 36px;
+  background: #0b2545;
+  color: white;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.history-brand {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.history-back {
+  color: white;
+  font-weight: 600;
+  font-size: 18px;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.history-nav {
+  display: flex;
+  gap: 20px;
+}
+
+.history-nav a {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.history-nav a:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.history-nav a.active {
+  color: white;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.history-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-user label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.history-user input {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 14px;
+  min-width: 180px;
+}
+
+.history-user input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.history-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.history-intro h1 {
+  font-size: 28px;
+  margin: 0 0 8px;
+}
+
+.history-intro p {
+  max-width: 720px;
+  color: #3a4b66;
+  line-height: 1.55;
+  margin: 0 0 24px;
+}
+
+.history-intro code {
+  background: #e6e9f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.history-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.history-stat-card {
+  background: white;
+  border: 1px solid #dfe3ea;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(11, 37, 69, 0.04);
+}
+
+.history-stat-label {
+  font-size: 11px;
+  color: #7a869a;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.history-stat-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: #0b2545;
+}
+
+.history-stat-hint {
+  font-size: 11px;
+  color: #7a869a;
+  margin-top: 2px;
+}
+
+.history-form {
+  background: white;
+  border: 1px solid #dfe3ea;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 1px 2px rgba(11, 37, 69, 0.04);
+}
+
+.history-form-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.history-form-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.history-date label {
+  display: block;
+  font-size: 11px;
+  color: #7a869a;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.history-date input {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #c9cfdb;
+  font-size: 14px;
+}
+
+.history-fieldset {
+  border: 1px solid #e6e9f0;
+  border-radius: 10px;
+  padding: 18px 20px 20px;
+  margin: 0 0 20px;
+}
+
+.history-fieldset legend {
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0b2545;
+  letter-spacing: 0.02em;
+}
+
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 16px;
+}
+
+.history-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #3a4b66;
+}
+
+.history-field > span {
+  letter-spacing: 0.02em;
+}
+
+.history-field input[type="number"],
+.history-field select {
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid #c9cfdb;
+  font-size: 14px;
+  background: white;
+  color: #0b2545;
+}
+
+.history-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding-top: 20px;
+}
+
+.history-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.history-likerts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px 20px;
+}
+
+.history-likert {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-likert-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.history-likert-label {
+  font-size: 13px;
+  color: #3a4b66;
+}
+
+.history-likert-current {
+  font-size: 12px;
+  color: #4a6fa5;
+  font-weight: 600;
+}
+
+.history-likert input[type="range"] {
+  width: 100%;
+}
+
+.history-likert-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #7a869a;
+}
+
+.history-error {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background: #fde6e9;
+  color: #a3485a;
+  border: 1px solid #f5c7ce;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.history-success {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background: #e4f2e7;
+  color: #2c5a34;
+  border: 1px solid #b6d5bc;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.history-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.history-submit {
+  background: #0b2545;
+  color: white;
+  padding: 10px 22px;
+  border-radius: 8px;
+  border: 0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.history-submit:hover:not(:disabled) {
+  background: #163a6d;
+}
+
+.history-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.history-entries {
+  background: white;
+  border: 1px solid #dfe3ea;
+  border-radius: 12px;
+  padding: 20px 24px 24px;
+  box-shadow: 0 1px 2px rgba(11, 37, 69, 0.04);
+}
+
+.history-entries h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+
+.history-empty {
+  color: #7a869a;
+  font-size: 14px;
+  margin: 0;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.history-table th,
+.history-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #eaecf2;
+  text-align: left;
+}
+
+.history-table th {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a869a;
+  font-weight: 600;
+}

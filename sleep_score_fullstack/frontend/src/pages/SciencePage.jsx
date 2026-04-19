@@ -235,8 +235,8 @@ export default function SciencePage() {
               </li>
               <li>
                 <strong>Sympathetic Nervous System Activation:</strong> Alcohol increases heart rate variability,
-                blood pressure, and sympathetic activity during sleep—all markers of a stressed nervous system
-                rather than restorative sleep.
+                blood pressure, and sympathetic activity during sleep. These are all markers of a stressed
+                nervous system rather than restorative sleep.
               </li>
             </ul>
             <p>
@@ -288,8 +288,8 @@ export default function SciencePage() {
         <ScienceSection icon="wb_sunny" title="Light Exposure & Circadian Rhythm">
           <div className="science-text">
             <p>
-              Light is the most powerful regulator of your circadian rhythm—your internal 24-hour biological
-              clock. The timing and intensity of light exposure directly controls melatonin production and sleep
+              Light is the most powerful regulator of your circadian rhythm (your internal 24-hour biological
+              clock). The timing and intensity of light exposure directly controls melatonin production and sleep
               timing.
             </p>
             <p>
@@ -303,9 +303,9 @@ export default function SciencePage() {
               warm light in the 1-2 hours before bed supports melatonin production.
             </p>
             <p>
-              <strong>Light During Sleep:</strong> Any light exposure during sleep—from phone screens or hallway
-              lights—disrupts sleep architecture and impairs melatonin restoration. Even brief light exposure can
-              wake you unconsciously.
+              <strong>Light During Sleep:</strong> Any light exposure during sleep, whether from phone screens
+              or hallway lights, disrupts sleep architecture and impairs melatonin restoration. Even brief light
+              exposure can wake you unconsciously.
             </p>
             <p>
               The simulator tracks light in lux (a measure of light intensity). Aim for 250+ lux in morning
@@ -318,8 +318,8 @@ export default function SciencePage() {
           <div className="science-text">
             <p>
               Heart Rate Variability (HRV) is the variation in time between heartbeats. It's a marker of
-              parasympathetic nervous system activity—your "rest and digest" system. Higher HRV indicates better
-              recovery and autonomic balance.
+              parasympathetic nervous system activity (your "rest and digest" system). Higher HRV indicates
+              better recovery and autonomic balance.
             </p>
             <p>
               <strong>RMSSD (Root Mean Square of Successive Differences):</strong> This is the most validated HRV
@@ -350,7 +350,7 @@ export default function SciencePage() {
         <ScienceSection icon="favorite" title="Resting Heart Rate & Sleep">
           <div className="science-text">
             <p>
-              Resting heart rate (RHR)—your heart rate when completely at rest—is an indicator of cardiovascular
+              Resting heart rate (RHR), your heart rate when completely at rest, is an indicator of cardiovascular
               efficiency and autonomic balance. Lower resting heart rates are associated with better fitness,
               recovery, and sleep quality.
             </p>
@@ -391,8 +391,8 @@ export default function SciencePage() {
             </p>
             <p>
               <strong>The real problem:</strong> While sleep quantity may be slightly better, hidden sleep quality
-              problems persist. Users may unconsciously self-medicate—using alcohol at night to counteract daytime
-              caffeine, and vice versa—without realizing they're trading one sleep problem for another.
+              problems persist. Users may unconsciously self-medicate by using alcohol at night to counteract
+              daytime caffeine, and vice versa, without realizing they're trading one sleep problem for another.
             </p>
           </div>
         </ScienceSection>

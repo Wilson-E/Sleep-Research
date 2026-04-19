@@ -10,10 +10,7 @@ from app.services.sleep_simulation_engine import (
     MealTimingPathway,
     SleepScoreCalculator,
 )
-
-
-def _clamp(x: float, lo: float, hi: float) -> float:
-    return max(lo, min(hi, x))
+from app.utils.math_utils import clamp
 
 
 def _build_caffeine_doses(cups: float, weekend: bool) -> List[CaffeineDose]:
@@ -92,7 +89,11 @@ def _build_calculator(req: PredictRequest, profile=None) -> SleepScoreCalculator
     derived_bedtime = last_meal + req.hours_last_eat_to_bed
     bedtime = req.bedtime_hours if req.bedtime_hours is not None else derived_bedtime
 
-    daytime_bright_hours = _clamp(req.morning_light_lux / 250.0, 0.0, 4.0)
+    # Rough proxy: convert a morning-light lux reading into equivalent hours
+    # of bright-light exposure. 250 lux is the floor for "bright indoor"; above
+    # that we assume one hour of effective bright exposure per 250 lux, capped
+    # at 4 hours so an outdoor reading does not explode the alertness bonus.
+    daytime_bright_hours = clamp(req.morning_light_lux / 250.0, 0.0, 4.0)
     explicit_doses = _build_explicit_caffeine_doses(req)
     caffeine_doses = explicit_doses or _build_caffeine_doses(req.caffeine_cups, req.weekend)
     caffeine_cups = _cups_from_doses(caffeine_doses) if explicit_doses else req.caffeine_cups

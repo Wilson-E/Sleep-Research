@@ -14,7 +14,7 @@ uvicorn app.main:app --reload --port 8000
 
 ## Endpoints
 - `GET /health`
-- `POST /api/predict` — returns a 0–100 sleep score + breakdown.
+- `POST /api/predict`: returns a 0 to 100 sleep score and breakdown.
 
 ## Data files expected
 Place these in `backend/data/`:

@@ -3,12 +3,12 @@ model_trainer.py
 ================
 Trains four model tiers on the harmonized sleep dataset:
 
-  A. Calibrated Pathway Coefficients — learns the pathway engine's key
+  A. Calibrated Pathway Coefficients: learns the pathway engine's key
      parameters from data via constrained optimization.
-  B. OLS Multiple Regression — statsmodels with full inference tables.
-  C. SEM Path Analysis — semopy structural equation model inspired by
+  B. OLS Multiple Regression: statsmodels with full inference tables.
+  C. SEM Path Analysis: semopy structural equation model inspired by
      Soares et al. (2025), testing mediation effects.
-  D. Random Forest — sklearn benchmark for predictive ceiling.
+  D. Random Forest: sklearn benchmark for predictive ceiling.
 
 All models predict sleep_quality_score (0-100) from lifestyle factors.
 A secondary target (sleep_duration_hours) is also modeled where appropriate.

@@ -12,16 +12,15 @@ import math
 from dataclasses import dataclass, field
 from typing import Dict, List
 
+from app.utils.math_utils import clamp
+
 
 # ---------------------------------------------------------------------------
 # Shared utilities
 # ---------------------------------------------------------------------------
 
-def _clamp(x: float, lo: float, hi: float) -> float:
-    return max(lo, min(hi, x))
-
-
 def _log10_safe(x: float) -> float:
+    """math.log10 with a floor of 1e-9 so zero-lux inputs do not blow up."""
     return math.log10(max(1e-9, x))
 
 
@@ -49,8 +48,12 @@ class CaffeinePathway:
     cup_equiv_mg: float = 95.0
     sensitivity_multiplier: float = 1.0
 
-    # Calibrated from NHANES (n=5,116); literature value was 10.4 (Song & Walker 2023)
+    # Minutes of sleep duration lost per caffeinated cup-equivalent that is
+    # still bioactive at bedtime. Calibrated on NHANES 2017 to 2020 (n=5,116);
+    # the unadjusted literature value is 10.4 (Song and Walker 2023).
     _minutes_lost_per_cup: float = 9.07
+    # Subjective-quality points lost per residual cup-equivalent. Project tuning;
+    # no direct published value available for this combined construct.
     _quality_pen_per_cup: float = 2.0
 
     def _residual_mg(self) -> float:
@@ -68,8 +71,8 @@ class CaffeinePathway:
         residual_cups = residual_mg / self.cup_equiv_mg
         effective_residual_cups = residual_cups * self.sensitivity_multiplier
 
-        duration_penalty_min = _clamp(effective_residual_cups * self._minutes_lost_per_cup, 0.0, 120.0)
-        quality_penalty = _clamp(effective_residual_cups * self._quality_pen_per_cup, 0.0, 20.0)
+        duration_penalty_min = clamp(effective_residual_cups * self._minutes_lost_per_cup, 0.0, 120.0)
+        quality_penalty = clamp(effective_residual_cups * self._quality_pen_per_cup, 0.0, 20.0)
 
         return {
             "residual_mg": round(residual_mg, 1),
@@ -92,13 +95,17 @@ class AlcoholPathway:
     drinks: float = 0.0
     caffeine_cups: float = 0.0
 
+    # Song and Walker (2023) fixed effects from their mixed-effects model:
+    # each drink costs 3.04 subjective-quality points on average, and the
+    # caffeine-by-alcohol interaction returns +1.29 points (partially
+    # offsetting the alcohol hit for co-consumers).
     _quality_pen_per_drink: float = 3.04
     _interaction_coeff: float = 1.29
 
     def compute(self) -> Dict[str, float]:
         raw_pen = self.drinks * self._quality_pen_per_drink
         interaction_offset = self.drinks * self.caffeine_cups * self._interaction_coeff
-        net_pen = _clamp(raw_pen - interaction_offset, 0.0, 40.0)
+        net_pen = clamp(raw_pen - interaction_offset, 0.0, 40.0)
 
         return {
             "raw_quality_penalty": round(raw_pen, 2),
@@ -121,6 +128,10 @@ class MealTimingPathway:
     bedtime_hours: float = 23.0
     sensitivity_multiplier: float = 1.0
 
+    # Odds ratios from Kim et al. (2024). Each OR is the per-hour increase
+    # in the odds of reporting poor sleep quality associated with the named
+    # meal-timing boundary. Values above 1.0 are harmful; below 1.0 are
+    # protective (wider eating windows coincided with better sleep).
     _or_wake_to_first_timing: float = 1.19
     _or_wake_to_first_duration: float = 1.21
     _or_last_to_bed_duration: float = 1.09
@@ -141,13 +152,21 @@ class MealTimingPathway:
     def _or_to_penalty(
         self, or_val: float, hours: float, max_pen: float, reference_hours: float = 3.0
     ) -> float:
+        """
+        Translate an odds-ratio (per hour of timing shift) into a bounded
+        quality penalty. We assume a log-linear odds model, which makes the
+        accumulated log-odds scale with hours, so (OR^hours - 1) is the raw
+        excess odds and (OR^reference_hours - 1) normalizes that excess to
+        reach `max_pen` at `reference_hours`. A protective OR (less than 1.0)
+        gives a non-positive denominator and is surfaced as zero penalty.
+        """
         if hours <= 0:
             return 0.0
         numerator = or_val**hours - 1.0
         denominator = or_val**reference_hours - 1.0
         if denominator <= 0:
             return 0.0
-        return _clamp(max_pen * numerator / denominator, 0.0, max_pen)
+        return clamp(max_pen * numerator / denominator, 0.0, max_pen)
 
     def compute(self) -> Dict[str, float]:
         h_w2f = self._hours_wake_to_first()
@@ -168,7 +187,7 @@ class MealTimingPathway:
         ) * self.sensitivity_multiplier
         duration_pen = dur_pen_w2f + dur_pen_l2b
 
-        window_bonus = _clamp((1.0 - self._or_window_timing_protective) * ew * 2.5, 0.0, 8.0)
+        window_bonus = clamp((1.0 - self._or_window_timing_protective) * ew * 2.5, 0.0, 8.0)
 
         return {
             "hours_wake_to_first": round(h_w2f, 2),
@@ -192,8 +211,10 @@ class LightPathway:
     pre_bed_light_lux: float = 30.0
     night_light_minutes: float = 0.0
 
+    # Didikoglu et al. (2023) PNAS: added sleep-onset latency (SOL) minutes
+    # per log10(lux) of evening light above a dim-room reference.
     _sol_min_per_log_lux: float = 30.0
-    _reference_lux: float = 10.0
+    _reference_lux: float = 10.0  # dim-room reference; below this, no penalty
 
     def _sol_latency_penalty_min(self) -> float:
         ref_log = _log10_safe(self._reference_lux)
@@ -202,16 +223,16 @@ class LightPathway:
         return delta_log * self._sol_min_per_log_lux
 
     def _alertness_score(self) -> float:
-        return _clamp(self.daytime_bright_light_hours / 2.0 * 100.0, 0.0, 100.0)
+        return clamp(self.daytime_bright_light_hours / 2.0 * 100.0, 0.0, 100.0)
 
     def compute(self) -> Dict[str, float]:
         sol_min = self._sol_latency_penalty_min()
-        latency_pen = _clamp((sol_min / 15.0) * 5.0, 0.0, 25.0)
+        latency_pen = clamp((sol_min / 15.0) * 5.0, 0.0, 25.0)
 
         alertness_score = self._alertness_score()
-        alertness_bonus = _clamp((alertness_score / 100.0) * 20.0, 0.0, 20.0)
+        alertness_bonus = clamp((alertness_score / 100.0) * 20.0, 0.0, 20.0)
 
-        night_pen = _clamp((self.night_light_minutes / 30.0) * 3.0, 0.0, 12.0)
+        night_pen = clamp((self.night_light_minutes / 30.0) * 3.0, 0.0, 12.0)
 
         return {
             "sol_latency_penalty_min": round(sol_min, 1),
@@ -232,7 +253,7 @@ class EveningDietModifier:
     Models the Soares et al. (2025) finding that evening diet composition
     mediates the relationship between meal timing and sleep quality.
 
-    This is NOT an independent pathway — it modifies the outputs of
+    This is NOT an independent pathway; it modifies the outputs of
     CaffeinePathway, AlcoholPathway, and MealTimingPathway.
     """
 
@@ -242,11 +263,12 @@ class EveningDietModifier:
     screen_time_minutes: float = 0.0
     sensitivity_multiplier: float = 1.0  # personalized via Bayesian updater
 
-    # Soares et al. (2025) standardized coefficients
-    _de_disturbing_diet: float = 0.189
-    _de_evening_latency_short: float = -0.126
-    _ie_mediation: float = 0.013
-    _de_screen_time: float = 0.001
+    # Soares et al. (2025) standardized path coefficients from their
+    # structural equation mediation model of evening diet on sleep quality.
+    _de_disturbing_diet: float = 0.189        # direct effect: disturbing diet on quality
+    _de_evening_latency_short: float = -0.126  # direct effect: short eat-to-bed latency is protective when diet is clean
+    _ie_mediation: float = 0.013              # indirect effect via the mediated pathway
+    _de_screen_time: float = 0.001            # direct effect: evening screen-time minutes
 
     def compute(self) -> Dict:
         has_evening_caffeine = self.evening_caffeine_mg > 10.0
@@ -260,22 +282,22 @@ class EveningDietModifier:
 
         # Direct effect of disturbing diet on quality (max ~8 pts penalty)
         diet_quality_penalty = diet_disturbing_score * self._de_disturbing_diet * 40.0
-        diet_quality_penalty = _clamp(diet_quality_penalty * self.sensitivity_multiplier, 0.0, 8.0)
+        diet_quality_penalty = clamp(diet_quality_penalty * self.sensitivity_multiplier, 0.0, 8.0)
 
         # Evening latency interaction (mediation effect)
         short_latency = self.hours_last_eat_to_bed <= 2.0
         if short_latency and diet_disturbing_score > 0:
             mediation_penalty = diet_disturbing_score * self._ie_mediation * 40.0
-            mediation_penalty = _clamp(mediation_penalty * self.sensitivity_multiplier, 0.0, 3.0)
+            mediation_penalty = clamp(mediation_penalty * self.sensitivity_multiplier, 0.0, 3.0)
         elif short_latency and diet_disturbing_score == 0:
             # Short latency with clean diet is PROTECTIVE
             mediation_penalty = self._de_evening_latency_short * 15.0  # negative = bonus
-            mediation_penalty = _clamp(mediation_penalty, -4.0, 0.0)
+            mediation_penalty = clamp(mediation_penalty, -4.0, 0.0)
         else:
             mediation_penalty = 0.0
 
         # Screen time penalty (max 4 pts)
-        screen_penalty = _clamp(self.screen_time_minutes * self._de_screen_time * 0.5, 0.0, 4.0)
+        screen_penalty = clamp(self.screen_time_minutes * self._de_screen_time * 0.5, 0.0, 4.0)
 
         return {
             "diet_disturbing_score": round(diet_disturbing_score, 2),
@@ -314,47 +336,47 @@ class SleepScoreCalculator:
         evening = self.evening_diet_modifier.compute()
 
         # --- Duration component (max 30) ---
-        caf_dur_pen = _clamp(caf["duration_penalty_min"] / 120.0 * 20.0, 0.0, 20.0)
-        meal_dur_pen = _clamp(meal["duration_penalty"] / 15.0 * 10.0, 0.0, 10.0)
-        duration_score = _clamp(
+        caf_dur_pen = clamp(caf["duration_penalty_min"] / 120.0 * 20.0, 0.0, 20.0)
+        meal_dur_pen = clamp(meal["duration_penalty"] / 15.0 * 10.0, 0.0, 10.0)
+        duration_score = clamp(
             self._max_duration - caf_dur_pen - meal_dur_pen, 0.0, self._max_duration
         )
 
         # --- Quality component (max 30) ---
-        alc_qual_pen = _clamp(alc["net_quality_penalty"] / 40.0 * 20.0, 0.0, 20.0)
-        caf_qual_pen = _clamp(caf["quality_penalty"] / 20.0 * 10.0, 0.0, 10.0)
-        quality_score = _clamp(
+        alc_qual_pen = clamp(alc["net_quality_penalty"] / 40.0 * 20.0, 0.0, 20.0)
+        caf_qual_pen = clamp(caf["quality_penalty"] / 20.0 * 10.0, 0.0, 10.0)
+        quality_score = clamp(
             self._max_quality - alc_qual_pen - caf_qual_pen, 0.0, self._max_quality
         )
         # Soares evening diet: apply direct diet quality penalty (max 5 pts)
-        evening_qual_pen = _clamp(evening["diet_quality_penalty"] / 8.0 * 5.0, 0.0, 5.0)
-        quality_score = _clamp(quality_score - evening_qual_pen, 0.0, self._max_quality)
+        evening_qual_pen = clamp(evening["diet_quality_penalty"] / 8.0 * 5.0, 0.0, 5.0)
+        quality_score = clamp(quality_score - evening_qual_pen, 0.0, self._max_quality)
 
         # --- Timing component (max 20) ---
-        meal_tim_pen = _clamp(meal["timing_penalty"] / 15.0 * 12.0, 0.0, 12.0)
-        meal_window_bonus = _clamp(meal["window_bonus"] / 8.0 * 4.0, 0.0, 4.0)
-        light_lat_pen = _clamp(light["latency_penalty_points"] / 25.0 * 8.0, 0.0, 8.0)
-        timing_score = _clamp(
+        meal_tim_pen = clamp(meal["timing_penalty"] / 15.0 * 12.0, 0.0, 12.0)
+        meal_window_bonus = clamp(meal["window_bonus"] / 8.0 * 4.0, 0.0, 4.0)
+        light_lat_pen = clamp(light["latency_penalty_points"] / 25.0 * 8.0, 0.0, 8.0)
+        timing_score = clamp(
             self._max_timing - meal_tim_pen + meal_window_bonus - light_lat_pen,
             0.0,
             self._max_timing,
         )
         # Soares mediation: negative = bonus (clean short latency), positive = penalty
-        evening_timing_adj = _clamp(evening["mediation_penalty"] / 3.0 * 4.0, -4.0, 4.0)
-        timing_score = _clamp(timing_score - evening_timing_adj, 0.0, self._max_timing)
+        evening_timing_adj = clamp(evening["mediation_penalty"] / 3.0 * 4.0, -4.0, 4.0)
+        timing_score = clamp(timing_score - evening_timing_adj, 0.0, self._max_timing)
 
         # --- Alertness component (max 20) ---
         alertness_bonus = light["alertness_bonus"]
-        night_light_pen = _clamp(light["night_light_penalty"] / 12.0 * 5.0, 0.0, 5.0)
-        alertness_score = _clamp(
+        night_light_pen = clamp(light["night_light_penalty"] / 12.0 * 5.0, 0.0, 5.0)
+        alertness_score = clamp(
             alertness_bonus - night_light_pen, 0.0, self._max_alertness
         )
         # Soares screen time penalty (max 3 pts)
-        evening_screen_pen = _clamp(evening["screen_penalty"] / 4.0 * 3.0, 0.0, 3.0)
-        alertness_score = _clamp(alertness_score - evening_screen_pen, 0.0, self._max_alertness)
+        evening_screen_pen = clamp(evening["screen_penalty"] / 4.0 * 3.0, 0.0, 3.0)
+        alertness_score = clamp(alertness_score - evening_screen_pen, 0.0, self._max_alertness)
 
         total_score = duration_score + quality_score + timing_score + alertness_score
-        total_score = _clamp(total_score, 0.0, 100.0)
+        total_score = clamp(total_score, 0.0, 100.0)
 
         breakdown = {
             "total_score": round(total_score, 1),

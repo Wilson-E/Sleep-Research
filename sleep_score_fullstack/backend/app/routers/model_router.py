@@ -6,8 +6,8 @@ API endpoints for model validation metrics and comparison.
 These are additive endpoints; the existing /api/predict stays untouched.
 
 Endpoints:
-    GET /api/model/metrics     — validation metrics for each model tier
-    GET /api/model/comparison  — full comparison table + model details
+    GET /api/model/metrics     (validation metrics for each model tier)
+    GET /api/model/comparison  (full comparison table plus model details)
 """
 
 from __future__ import annotations

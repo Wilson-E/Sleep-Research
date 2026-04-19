@@ -104,21 +104,12 @@ export default function SimulatorPage() {
     <div className="sim-page">
       <header className="top-nav">
         <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
-          <span className="brand">Vitality Core</span>
+          <Link to="/" className="brand">Vitality Core</Link>
           <nav className="top-links">
-            <a className="top-link active" href="#">Dashboard</a>
-            <a className="top-link" href="#">History</a>
-            <a className="top-link" href="#">Insights</a>
-            <a className="top-link" href="#">Labs</a>
+            <Link className="top-link active" to="/simulator">Simulator</Link>
+            <Link className="top-link" to="/history">History</Link>
+            <Link className="top-link" to="/science">Science</Link>
           </nav>
-        </div>
-        <div className="top-actions">
-          <button className="icon-button" type="button" aria-label="Notifications">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-          <button className="icon-button" type="button" aria-label="Settings">
-            <span className="material-symbols-outlined">settings</span>
-          </button>
         </div>
       </header>
 
@@ -126,27 +117,22 @@ export default function SimulatorPage() {
         <aside className="side-nav">
           <div className="side-header">
             <h2>Vitality Core</h2>
-            <p>Bio-Optimization</p>
+            <p>Sleep Score Simulator</p>
           </div>
           <div className="side-list">
+            <Link to="/simulator" className="side-item active">
+              <span className="material-symbols-outlined">analytics</span>
+              Simulator
+            </Link>
+            <Link to="/history" className="side-item">
+              <span className="material-symbols-outlined">history</span>
+              History
+            </Link>
             <Link to="/science" className="side-item">
               <span className="material-symbols-outlined">science</span>
               Science
             </Link>
-            <button className="side-item active" type="button">
-              <span className="material-symbols-outlined">wb_sunny</span>
-              Circadian
-            </button>
-            <button className="side-item" type="button">
-              <span className="material-symbols-outlined">restaurant</span>
-              Nutrition
-            </button>
-            <button className="side-item" type="button">
-              <span className="material-symbols-outlined">healing</span>
-              Recovery
-            </button>
           </div>
-          <button className="side-upgrade" type="button">Upgrade to Pro</button>
         </aside>
 
         <main className="main">
@@ -511,22 +497,18 @@ export default function SimulatorPage() {
       </div>
 
       <nav className="mobile-bottom-nav">
-        <a className="active" href="#">
-          <span className="material-symbols-outlined">dashboard</span>
-          Dash
-        </a>
-        <a href="#">
+        <Link to="/simulator" className="active">
+          <span className="material-symbols-outlined">analytics</span>
+          Simulator
+        </Link>
+        <Link to="/history">
           <span className="material-symbols-outlined">history</span>
           History
-        </a>
-        <a href="#">
-          <span className="material-symbols-outlined">analytics</span>
-          Sim
-        </a>
-        <a href="#">
-          <span className="material-symbols-outlined">person</span>
-          Profile
-        </a>
+        </Link>
+        <Link to="/science">
+          <span className="material-symbols-outlined">science</span>
+          Science
+        </Link>
       </nav>
     </div>
   )
