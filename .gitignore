@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node / frontend build
+node_modules/
+dist/
+build/
+.vite/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Data logs (personal data; keep out of git)
+sleep_score_fullstack/backend/data/logs/
+
+# Raw data files (tracked via datasets.zip instead)
+sleep_score_fullstack/backend/data/*.csv
+sleep_score_fullstack/backend/data/*.xpt
+sleep_score_fullstack/backend/data/*.xpt.txt
+!sleep_score_fullstack/backend/data/datasets.zip
+
+# Regenerated paper figures (rebuild locally with scripts/generate_figures.py)
+figures/
