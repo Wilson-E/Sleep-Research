@@ -194,6 +194,7 @@ Open `http://localhost:5173`. The Vite dev server proxies `/api/*` to `http://lo
 2. **`generate_figures.py` errors on "Trained model service failed to load".** A data file is missing. Re-run `unzip datasets.zip` in the `data/` directory and retry.
 3. **Port 8000 is already in use.** Pick another port: `uvicorn app.main:app --port 8001`. Update the proxy target in `frontend/vite.config.js` accordingly.
 4. **`pip install` fails on `semopy` or `numpy` (Apple Silicon).** Upgrade pip first, then retry.
+5. **`npm: command not found`.** Node.js is not installed. Download the installer from [nodejs.org/en/download](https://nodejs.org/en/download) (the `.pkg` for macOS or `.msi` for Windows). It includes npm automatically. After installing, restart your terminal and retry `npm install`.
 
 ---
 
