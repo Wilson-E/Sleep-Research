@@ -176,6 +176,8 @@ curl -X POST http://localhost:8000/api/predict \
 
 The React app is a demo UI. It does not affect any reported number.
 
+**Requires [Node.js 18+](https://nodejs.org/).** If `npm` is not found, download and run the macOS `.pkg` installer from [nodejs.org/en/download](https://nodejs.org/en/download). It includes npm automatically.
+
 ```bash
 cd ../../frontend
 npm install
