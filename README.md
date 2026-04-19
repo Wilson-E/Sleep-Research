@@ -40,7 +40,7 @@ Sleep-Research/
 
 | Tool | Version | Required For |
 |------|---------|--------------|
-| Python | 3.13 recommended (3.11+ also works) | Backend, CLI simulator, figures |
+| Python | 3.11, 3.12, or 3.13 (3.14 is **not** supported) | Backend, CLI simulator, figures |
 | pip | Any recent version | Installing Python dependencies |
 | git | Any recent version | Cloning the repository |
 | Node.js | 18+ (optional) | Running the frontend locally |
